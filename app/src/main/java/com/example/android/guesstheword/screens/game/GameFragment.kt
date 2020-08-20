@@ -17,6 +17,7 @@
 package com.example.android.guesstheword.screens.game
 
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -34,11 +35,11 @@ import com.example.android.guesstheword.databinding.GameFragmentBinding
  * Fragment where the game is played
  */
 
-lateinit var viewModel: GameViewModel
-
 class GameFragment : Fragment() {
 
     private lateinit var binding: GameFragmentBinding
+
+    private lateinit var viewModel: GameViewModel
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
@@ -54,6 +55,10 @@ class GameFragment : Fragment() {
         Log.i("GameFragment", "Called ViewModelProvider")
         viewModel = ViewModelProvider(this).get(GameViewModel::class.java)
 
+        viewModel.currentTime.observe(viewLifecycleOwner, Observer { timeLeft ->
+            binding.timerText.text = DateUtils.formatElapsedTime(timeLeft)
+        })
+
         viewModel.score.observe(viewLifecycleOwner, Observer { newScore ->
             binding.scoreText.text = newScore.toString()
         })
@@ -62,10 +67,9 @@ class GameFragment : Fragment() {
             binding.wordText.text = newWord
         })
 
-        viewModel.eventGameFinish.observe(this, Observer { hasFinished ->
+        viewModel.eventGameFinish.observe(viewLifecycleOwner, Observer { hasFinished ->
             if (hasFinished) {
                 gameFinished()
-                viewModel.onGameFinishComplete()
             }
         })
 
@@ -83,8 +87,9 @@ class GameFragment : Fragment() {
      * Called when the game is finished
      */
     private fun gameFinished() {
-        val action = GameFragmentDirections.actionGameToScore(viewModel.score.value ?: 0)
+        val currentScore = viewModel.score.value ?: 0
+        val action = GameFragmentDirections.actionGameToScore(currentScore)
         findNavController(this).navigate(action)
+        viewModel.onGameFinishComplete()
     }
-
 }
